@@ -682,14 +682,14 @@ main() {
     # Show access information
     show_multi_gpu_access_info
 
-    DB_IP="10.244.76.56"
-    sed -i "s|PLACEHOLDER_DB_IP|$DB_IP|g" 02-multi-gpu-backends.yaml
-    sleep 120
-    sudo kubectl apply -f 02-multi-gpu-backends.yaml
-    sudo kubectl apply -f 04-web-services.yaml
-    sudo kubectl apply -f 05-streaming-services.yaml  
+    # DB_IP="10.244.76.56"
+    # sed -i "s|PLACEHOLDER_DB_IP|$DB_IP|g" 02-multi-gpu-backends.yaml
+    # sleep 120
+    # sudo kubectl apply -f 02-multi-gpu-backends.yaml
+    # sudo kubectl apply -f 04-web-services.yaml
+    # sudo kubectl apply -f 05-streaming-services.yaml  
 
-    sudo kubectl apply -f 06-services.yaml
+    # sudo kubectl apply -f 06-services.yaml
 
     
     print_status "success" "🎯 Multi-GPU Build Process Completed!"

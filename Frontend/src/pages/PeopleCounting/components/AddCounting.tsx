@@ -21,6 +21,8 @@ import DrawBoard, { useArrowsStore, useRectanglesStore } from "./DrawBoard";
 // import { toast } from 'react-hot-toast'
 import { useGpuStore } from "../../../store/gpus";
 import { useWebSocketStore } from "../store/useSocket";
+import { getBackendUrl } from "../../../services/getBackendUrl";
+
 const StreamProgress = ({ message }) => {
   const [progress, setProgress] = useState(0);
 
@@ -247,8 +249,9 @@ export const AddStreamCountingButton = ({
     stream.places.forEach(
       async (element: { name: string | undefined; id: number }) => {
         if (element.name === streamStore.place) {
+          const backendUrl = getBackendUrl(streamStore.cuda_device);
           const response = await axios.post(
-            "/peoplecounting/addStreamCounting/",
+            `${backendUrl}/api/peoplecounting/addStreamCounting/`,
             {
               title: `${streamStore.title}`,
               place: `${element.id}`,
@@ -265,13 +268,13 @@ export const AddStreamCountingButton = ({
           console.log("response", response.data);
           if (places[indexplace]?.id) {
             const res = await axios.get(
-              `/peoplecounting/streamCounting/${places[indexplace]?.id}`
+              `${backendUrl}/api/peoplecounting/streamCounting/${places[indexplace]?.id}`
             );
             stream.load(res.data);
           } else {
             stream.load([]);
           }
-          const res1 = await axios.get(`/api/zones/line`);
+          const res1 = await axios.get(`${backendUrl}/api/zones/line`);
           stream.setPlaces(res1.data);
         }
       }
@@ -304,8 +307,9 @@ export const AddStreamCountingButton = ({
         if (element.name === streamStore.place) {
           console.log("streamStore.id", streamStore.response.id);
           console.log("streamStore.id", streamStore.id);
+          const backendUrl = getBackendUrl(streamStore.cuda_device);
           const response = await axios.patch(
-            "/peoplecounting/addStreamCounting/",
+            `${backendUrl}/api/peoplecounting/addStreamCounting/`,
             {
               id: streamStore.id,
               title: `${streamStore.title}`,
@@ -323,13 +327,13 @@ export const AddStreamCountingButton = ({
           streamStore.setResponse(response.data);
           if (places[indexplace]?.id) {
             const res = await axios.get(
-              `/peoplecounting/streamCounting/${places[indexplace]?.id}`
+              `${backendUrl}/api/peoplecounting/streamCounting/${places[indexplace]?.id}`
             );
             stream.load(res.data);
           } else {
             stream.load([]);
           }
-          const res1 = await axios.get(`/api/zones/line`);
+          const res1 = await axios.get(`${backendUrl}/api/zones/line`);
           stream.setPlaces(res1.data);
           arrowStore.resetArrows();
           rectangleStore.resetRectangles();
