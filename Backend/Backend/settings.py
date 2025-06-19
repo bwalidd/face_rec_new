@@ -137,20 +137,20 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": ['redis://:admin@redis:6379/0'],  # Ensure this matches your Redis configuration
+            "hosts": [os.getenv('REDIS_URL', 'redis://:admin@redis-primary-service:6379/0')],
         },
     },
     'status': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": ['redis://:admin@redis_channel:6380/1'],  # Using different DB
+            "hosts": [os.getenv('REDIS_CHANNEL_URL', 'redis://:admin@redis-channels-service:6380/1')],
         },
     },
 }
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://default:admin@redis:6379/1',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://:admin@redis-primary-service:6379/1'),
         'TIMEOUT': 300,  # 5 minutes default
        
     }
@@ -181,11 +181,11 @@ TEMPLATES = [
 DATABASES = {    
    "default": {        
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "FaceApi",
-        "USER": "FaceApi",
-        "PASSWORD": "example",
-        "HOST": "database",
-        "PORT": 5432,
+        "NAME": os.getenv('POSTGRES_DB', 'FaceApi'),
+        "USER": os.getenv('POSTGRES_USER', 'FaceApi'),
+        "PASSWORD": os.getenv('POSTGRES_PASSWORD', 'example'),
+        "HOST": os.getenv('DATABASE_HOST', 'postgres-service'),
+        "PORT": os.getenv('DATABASE_PORT', '5432'),
     },
    'OPTIONS': {
             'MIN_CONNECTIONS': 8,
@@ -239,8 +239,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # GPU Configuration
 GPU_COUNT = 2  # 2 GPUs per node
 GPU_DEVICES = "0,1"  # Local GPU devices
-NODE_TYPE = os.environ.get('NODE_TYPE', 'master')
-CUDA_VISIBLE_DEVICES = os.environ.get('CUDA_VISIBLE_DEVICES', '0,1')
+NODE_TYPE = os.getenv('NODE_TYPE', 'master')
+CUDA_VISIBLE_DEVICES = os.getenv('CUDA_VISIBLE_DEVICES', '0,1')
 
 # Celery GPU Configuration
 CELERY_GPU_SETTINGS = {
@@ -259,8 +259,8 @@ CELERY_GPU_SETTINGS = {
 }
 
 # Add GPU settings to Celery configuration
-CELERY_BROKER_URL = 'redis://default:admin@redis:6379/0'
-CELERY_RESULT_BACKEND = 'redis://default:admin@redis:6379/0'
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://:admin@redis-primary-service:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://:admin@redis-primary-service:6379/0')
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_SEND_TASK_EVENTS = True
 CELERY_SEND_EVENTS = True
