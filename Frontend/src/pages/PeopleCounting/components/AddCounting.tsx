@@ -1,0 +1,466 @@
+import { useState, useEffect } from "react";
+import { Button } from "@nextui-org/button";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  Input,
+  ModalFooter,
+  useDisclosure,
+  Progress
+} from "@nextui-org/react";
+import { RadioGroup, Radio } from "@nextui-org/react";
+import { toast } from 'react-hot-toast';
+import { Autocomplete, AutocompleteItem } from "@nextui-org/react";
+import { useStreamStore } from "../../../store/stream";
+import useAxios from "../../../services/axios";
+import { create } from "zustand";
+import { BiPlus } from "react-icons/bi";
+import DrawBoard, { useArrowsStore, useRectanglesStore } from "./DrawBoard";
+// import { toast } from 'react-hot-toast'
+import { useGpuStore } from "../../../store/gpus";
+import { useWebSocketStore } from "../store/useSocket";
+const StreamProgress = ({ message }) => {
+  const [progress, setProgress] = useState(0);
+
+  const statusMap = {
+    "Ai process is starting": 40,
+    "Starting streaming process": 60,
+    "integrating stream (60s approx)": 90,
+    "Stream is ready": 100
+  };
+
+  useEffect(() => {
+    if (message in statusMap) {
+      setProgress(statusMap[message]);
+    }
+  }, [message]);
+
+  return (
+    <div className="w-full flex flex-col gap-4">
+      <Progress
+        size="md"
+        radius="sm"
+        classNames={{
+          base: "max-w-md",
+          track: "drop-shadow-md border border-default",
+          indicator: "bg-gradient-to-r from-blue-500 to-blue-600",
+          label: "tracking-wider font-medium text-default-600",
+          value: "text-blue-600"
+        }}
+        value={progress}
+        showValueLabel={true}
+        label={message}
+      />
+    </div>
+  );
+};
+type STORE = {
+  place: string;
+  url: string;
+  title: string;
+  id: string;
+  model: string;
+  cuda_device: number;
+};
+type ACTION = {
+  setPlace: (data: string) => void;
+  setUrl: (data: string) => void;
+  setTitle: (data: string) => void;
+  setResponse: (data: any) => void;
+  setId: (data: string) => void;
+  setModel: (data: string) => void;
+  setCudaDevice: (data: number) => void;
+  response: any;
+  handleSubmit: () => void;
+};
+const useAddStreamStore = create<STORE & ACTION>((set) => ({
+  id: "",
+  place: "",
+  url: "",
+  title: "",
+  model: "",
+  cuda_device: 0,
+  response: null,
+
+  setPlace(data) {
+    set({ place: data });
+  },
+  setId(data) {
+    set({ id: data });
+  },
+  setUrl(data) {
+    set({ url: data });
+  },
+  setTitle(data) {
+    set({ title: data });
+  },
+  setResponse(data) {
+    set({ response: data });
+  },
+  setModel(data) {
+    set({ model: data });
+  },
+  setCudaDevice(data) {
+    set({ cuda_device: data });
+  },
+  handleSubmit() {
+    console.log("Submit");
+  },
+}));
+
+const StepOne = (places: any, indexplace: number, streamtype: string) => {
+  const flag = false;
+  const stream = useStreamStore();
+  const gpuStore = useGpuStore();
+  const streamStore = useAddStreamStore();
+
+  const handleUrlChange = (e: any) => {
+    streamStore.setUrl(e.target.value);
+  };
+  const handleCudaDeviceChange = (value: any) => {
+    console.log(`clicked value is ${value}`)
+    streamStore.setCudaDevice(value)
+  }
+  const handleTitleChange = (e: any) => {
+    streamStore.setTitle(e.target.value);
+  };
+
+  const handleSetAuto = (value: string) => {
+    streamStore.setPlace(value);
+  };
+  const handleModelChange = (value: string) => {
+    streamStore.setModel(value);
+    stream.setModel(value)
+  };
+  console.log("----")
+
+  console.log(stream.models)
+  console.log("----")
+  return (
+    <>
+      {flag == false && (
+        <>
+          <Autocomplete
+            label="Place"
+            placeholder="Search for a place"
+            defaultItems={stream.places}
+            labelPlacement="outside"
+            className="w-full h-full"
+            disableSelectorIconRotation
+            onInputChange={handleSetAuto}
+          >
+            {(item) => (
+              <AutocompleteItem className="h-full" key={item.name}>
+                {item.name}
+              </AutocompleteItem>
+            )}
+          </Autocomplete>
+          <Autocomplete
+            label="Model"
+            placeholder="set model"
+            defaultItems={stream.models}
+            labelPlacement="outside"
+            className="w-full h-full"
+            disableSelectorIconRotation
+            onInputChange={handleModelChange}
+          >
+            {(item) => (
+              <AutocompleteItem className="h-full" key={item.name}>
+                {item.name}
+              </AutocompleteItem>
+            )}
+          </Autocomplete>
+          <Input
+            className="text-white"
+            autoFocus
+            label="Camera"
+            placeholder="Enter camera name"
+            variant="bordered"
+            onChange={handleTitleChange}
+          />
+          <Input
+            className="text-white"
+            label="Url"
+            placeholder="Enter stream url"
+            type="text"
+            variant="bordered"
+            onChange={handleUrlChange}
+          />
+          <div className="flex flex-col gap-3">
+            <RadioGroup
+              label="Select GPU"
+              value={streamStore.cuda_device}
+              onValueChange={(v) => streamStore.setCudaDevice(parseInt(v))}
+            >
+              {Array.from({ length: gpuStore.gpus }).map((_, index) => (
+                <Radio key={index} value={index}>
+                  GPU {index + 1}
+                </Radio>
+              ))}
+            </RadioGroup>
+            <p className="text-default-500 text-small">
+              Selected: {parseInt(streamStore.cuda_device + 1)}
+            </p>
+          </div>
+        </>
+      )}
+    </>
+  );
+};
+
+const StepTwo = ({ streamtype }: { streamtype: "line" | "zone" }) => {
+  const stream = useStreamStore();
+  const gateStreamType = streamtype;
+  // console.log();
+  // console.log();
+
+  return (
+    <DrawBoard
+      imageUrl={`${import.meta.env.VITE_APP_BACKEND}${stream?.streams[0]?.thumbnail
+        }`}
+      type={gateStreamType}
+    />
+  );
+};
+
+export const AddStreamCountingButton = ({
+  places,
+  indexplace,
+  text,
+  streamtype,
+  category_name,
+  camera_type,
+  model_type
+}: any) => {
+  const arrowStore = useArrowsStore();
+  const rectangleStore = useRectanglesStore();
+  const { onOpen, isOpen, onOpenChange, onClose } = useDisclosure();
+  const [step, setStep] = useState(1);
+  const [toggle, setToggle] = useState(false)
+  const [message, setMessage] = useState("")
+  const axios = useAxios();
+  const streamStore = useAddStreamStore();
+  const stream = useStreamStore();
+  const handleSubmitStepOne = async () => {
+    stream.places.forEach(
+      async (element: { name: string | undefined; id: number }) => {
+        if (element.name === streamStore.place) {
+          const response = await axios.post(
+            "/peoplecounting/addStreamCounting/",
+            {
+              title: `${streamStore.title}`,
+              place: `${element.id}`,
+              url: `${streamStore.url}`,
+              camera_type: `${camera_type}`,
+              place_name: `${streamStore.place}`,
+              category_name: `${category_name}`,
+              model_type: `${model_type}`,
+              cuda_device: `${streamStore.cuda_device}`
+            }
+          );
+          streamStore.setResponse(response.data);
+          streamStore.setId(response.data.id);
+          console.log("response", response.data);
+          if (places[indexplace]?.id) {
+            const res = await axios.get(
+              `/peoplecounting/streamCounting/${places[indexplace]?.id}`
+            );
+            stream.load(res.data);
+          } else {
+            stream.load([]);
+          }
+          const res1 = await axios.get(`/api/zones/line`);
+          stream.setPlaces(res1.data);
+        }
+      }
+    );
+  };
+
+  const handleSubmitStepTwo = async () => {
+    stream.places.forEach(
+      async (element: { name: string | undefined; id: number }) => {
+        const cord_types = arrowStore.arrows.length > 0 ? "line" : "region";
+        const cords =
+          cord_types == "line"
+            ? `[${arrowStore.arrows
+              .map((arrow) =>
+                arrow.points.map((point) => Math.round(point)).join(",")
+              )
+              .join(",")}]`
+            : `[${rectangleStore.rectangles
+              .map(
+                (rect) =>
+                  Math.round(rect.x) +
+                  "," +
+                  Math.round(rect.y) +
+                  "," +
+                  Math.round(rect.width + rect.x) +
+                  "," +
+                  Math.round(rect.height + rect.y)
+              )
+              .join(",")}]`;
+        if (element.name === streamStore.place) {
+          console.log("streamStore.id", streamStore.response.id);
+          console.log("streamStore.id", streamStore.id);
+          const response = await axios.patch(
+            "/peoplecounting/addStreamCounting/",
+            {
+              id: streamStore.id,
+              title: `${streamStore.title}`,
+              place: `${element.id}`,
+              url: `${streamStore.url}`,
+              place_name: `${streamStore.place}`,
+              cords: cords,
+              camera_type: `${camera_type}`,
+              cords_type: `${cord_types}`,
+              model_type: `${stream.model}`,
+              cuda_device: `${streamStore.cuda_device}`
+
+            }
+          );
+          streamStore.setResponse(response.data);
+          if (places[indexplace]?.id) {
+            const res = await axios.get(
+              `/peoplecounting/streamCounting/${places[indexplace]?.id}`
+            );
+            stream.load(res.data);
+          } else {
+            stream.load([]);
+          }
+          const res1 = await axios.get(`/api/zones/line`);
+          stream.setPlaces(res1.data);
+          arrowStore.resetArrows();
+          rectangleStore.resetRectangles();
+        }
+      }
+    );
+  };
+
+  const webSocketStore = useWebSocketStore();
+  
+  // Only connect to the WebSocket when the modal is opened and toggle is true
+  useEffect(() => {
+    if (isOpen && toggle) {
+      webSocketStore.connect();
+      
+      // Set up a listener for the "Stream is ready" message
+      const checkMessage = () => {
+        if (webSocketStore.message === "Stream is ready") {
+          handleModalClose();
+          toast.success("Stream is ready");
+        }
+      };
+      
+      // Check for messages periodically
+      const intervalId = setInterval(checkMessage, 100);
+      
+      return () => {
+        clearInterval(intervalId);
+      };
+    }
+  }, [isOpen, toggle, webSocketStore.message]);
+  
+  const handleModalClose = () => {
+    onClose();
+    setToggle(false);
+  };
+  
+
+
+  return (
+    <>
+      <Button
+        onPress={onOpen}
+        color="primary"
+        className="text-foreground font-bold max-w-52 min-w-36"
+        variant="ghost"
+        endContent={<BiPlus className="text-medium text-foreground" />}
+      >
+        Add Stream ({text})
+      </Button>
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        placement="top-center"
+        size={step == 1 ? "md" : "full"}
+        radius="none"
+        className={step == 1 ? "" : "w-[80rem] h-[50rem]"}
+      >
+        <ModalContent>
+          {
+            toggle ? (
+              <>
+                <ModalHeader className="flex flex-col gap-1 text-white">
+                  Stream Progress
+                </ModalHeader>
+                <ModalBody className="flex justify-center items-center py-8">
+                  <StreamProgress message={webSocketStore.message} />
+                </ModalBody>
+              </>
+            ) : (
+              (onClose: () => void) => (
+                <>
+                  <ModalHeader className="flex flex-col gap-1 text-white">
+                    {
+                      {
+                        1: "Add new stream",
+                        2: "Add New Stream Line",
+                      }[step]
+                    }
+                  </ModalHeader>
+                  <ModalBody className="flex justify-start items-center">
+                    {
+
+                      {
+                        1: (
+                          <StepOne
+                            places={places}
+                            indexplace={indexplace}
+                            streamtype={streamtype}
+                          />
+                        ),
+                        2: <StepTwo streamtype={streamtype} />,
+                      }[step]
+                    }
+                  </ModalBody>
+                  <ModalFooter>
+                    <Button color="danger" variant="flat" onPress={onClose}>
+                      Close
+                    </Button>
+                    <Button
+                      color="primary"
+                      className="text-black"
+                      onPress={
+                        step == 1
+                          ? () => {
+                            setStep(2);
+                            handleSubmitStepOne();
+                          }
+                          : () => {
+                            setStep(1);
+                            handleSubmitStepTwo();
+                            setToggle(true)
+
+                          }
+                      }
+                    >
+                      {
+                        {
+                          1: "Next",
+                          2: "Add",
+                        }[step]
+                      }
+                    </Button>
+                  </ModalFooter>
+                </>
+              )
+            )
+          }
+
+        </ModalContent>
+      </Modal>
+    </>
+  );
+};
