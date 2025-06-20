@@ -26,6 +26,7 @@ data:
   STREAM_IP: "34.60.157.241"
   STREAM_PORT: "8555"
   STREAM_PROTOCOL: "rtmp"
+  STREAM_URL: "rtsp://34.60.157.241/live/your_stream"
 
 ---
 # Secrets for sensitive data

@@ -254,7 +254,11 @@ def main():
     processor = StreamProcessor(skip_frames=5)
     
     # Process stream
-    stream_url = "rtsp://your_stream_url"  # Replace with actual stream URL
+    import os
+    stream_url = os.environ.get("STREAM_URL")
+    if not stream_url:
+        LOGGER.warning("STREAM_URL environment variable not set. Using default fallback URL.")
+        stream_url = "rtsp://your_stream_url"
     processor.process_stream(stream_url)
 
 if __name__ == "__main__":
