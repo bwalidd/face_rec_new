@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 # 
 NAMESPACE="face-recognition-system"
 EXPECTED_IMAGE="bwalidd/new-django:base-image-fix1"
-EXPECTED_IMAGE1="bwalidd/new-django:cuda-12.4"
+EXPECTED_IMAGE1="bwalidd/new-django:cuda-12.6"
 MASTER_NODE="bluedove2-ms-7b98"    # 2x RTX 2080 Ti
 WORKER_NODE="bluedovve-ms-7b98"    # 2x RTX Super
 

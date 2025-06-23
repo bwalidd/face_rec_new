@@ -252,7 +252,7 @@ CELERY_GPU_SETTINGS = {
     'NCCL_DEBUG': 'INFO',
     'NCCL_IB_DISABLE': '1',
     'NCCL_P2P_DISABLE': '1',
-    'CUDA_VERSION': '12.2' if NODE_TYPE == 'master' else '12.4',  # Different CUDA versions for master and worker
+    'CUDA_VERSION': '12.6',
     'CUDA_LAUNCH_BLOCKING': '0',
     'OMP_NUM_THREADS': '4',
     'MALLOC_TRIM_THRESHOLD_': '100000',

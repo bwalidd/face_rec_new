@@ -322,7 +322,7 @@ spec:
         - name: NCCL_P2P_DISABLE
           value: "1"
         - name: CUDA_VERSION
-          value: "12.2"
+          value: "12.6"
         - name: CUDA_LAUNCH_BLOCKING
           value: "0"
         - name: OMP_NUM_THREADS
@@ -415,7 +415,7 @@ spec:
         - name: NCCL_P2P_DISABLE
           value: "1"
         - name: CUDA_VERSION
-          value: "12.2"
+          value: "12.6"
         - name: CUDA_LAUNCH_BLOCKING
           value: "0"
         - name: OMP_NUM_THREADS
