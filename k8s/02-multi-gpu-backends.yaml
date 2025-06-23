@@ -36,7 +36,7 @@ spec:
         kubernetes.io/hostname: bluedove2-ms-7b98
       containers:
       - name: django-backend
-        image: bwalidd/new-django:base-image-fix1
+        image: bwalidd/new-django:cuda-12.6 #base-image-fix1
         workingDir: /app/Backend
         command: ["python", "manage.py", "runserver", "0.0.0.0:9898"]
         ports:
@@ -159,7 +159,7 @@ spec:
             topologyKey: kubernetes.io/hostname
       containers:
       - name: django-backend
-        image: bwalidd/new-django:cuda-12.4 #cuda-12.6
+        image: bwalidd/new-django:cuda-12.6 #cuda-12.4
         workingDir: /app/Backend
         command: ["python", "manage.py", "runserver", "0.0.0.0:9898"]
         ports:
