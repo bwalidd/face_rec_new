@@ -19,6 +19,8 @@ data:
   REDIS_URL: "redis://:admin@redis-primary-service:6379/0"
   REDIS_CHANNEL_URL: "redis://:admin@redis-channels-service:6380/0"
   DATABASE_URL: "postgresql://FaceApi:example@postgres-service:5432/FaceApi"
+  DATABASE_HOST: "postgres-service"
+  DATABASE_PORT: "5432"
   CELERY_BROKER_URL: "redis://:admin@redis-primary-service:6379/0"
   CELERY_RESULT_BACKEND: "redis://:admin@redis-primary-service:6379/0"
   DJANGO_SUPERUSER_USERNAME: "bluedove"
@@ -27,6 +29,8 @@ data:
   STREAM_PORT: "8555"
   STREAM_PROTOCOL: "rtmp"
   STREAM_URL: "rtsp://34.60.157.241/live/your_stream"
+  POSTGRES_DB: "FaceApi"
+  POSTGRES_USER: "FaceApi"
 
 ---
 # Secrets for sensitive data

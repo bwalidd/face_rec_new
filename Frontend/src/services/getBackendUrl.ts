@@ -4,3 +4,8 @@ export function getBackendUrl(gpu: number) {
   // fallback to load balancer or default
   return "http://backend-loadbalancer-service:9898";
 }
+
+export function getRandomBackendUrl() {
+  // Randomly return one of the two backend pod services
+  return "http://backend-gpu0-service:9898";
+}
