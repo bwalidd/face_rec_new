@@ -25,7 +25,7 @@ spec:
         kubernetes.io/hostname: bluedove2-ms-7b98
       containers:
       - name: react-frontend
-        image: bwalidd/new-django:frontend-prod-latest
+        image: bwalidd/new-django:front-new-12.6 #bwalidd/new-django:frontend-prod-latest
         ports:
         - containerPort: 9999
         env:
