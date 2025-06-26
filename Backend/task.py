@@ -19,8 +19,7 @@ from ultralytics.yolo.utils import LOGGER
 def get_gpu_device():
     """Get the current GPU device based on environment variables"""
     cuda_device = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
-    node_type = os.environ.get('NODE_TYPE', 'master')
-    return int(cuda_device), node_type
+    return int(cuda_device)
 
 def load_encodings():
     encodings_file = 'known_face_encodings.pkl'
@@ -60,7 +59,7 @@ print(known_face_names)
 
 def face_recognition_worker(frame):
     # Get current GPU device and node type
-    gpu_device, node_type = get_gpu_device()
+    gpu_device = get_gpu_device()
     
     # Set CUDA device for PyTorch
     if torch.cuda.is_available():
@@ -186,8 +185,8 @@ def mainloop(rtsp_url, place):
 class YOLOPredictor(BasePredictor):
     def __init__(self, overrides=None):
         super().__init__(overrides)
-        self.gpu_device, self.node_type = get_gpu_device()
-        LOGGER.info(f"Initializing YOLOPredictor on GPU {self.gpu_device} ({self.node_type} node)")
+        self.gpu_device = get_gpu_device()
+        LOGGER.info(f"Initializing YOLOPredictor on GPU {self.gpu_device}")
 
     def setup_model(self, model, verbose=True):
         """Initialize YOLO model with given parameters and set it to evaluation mode."""
@@ -216,8 +215,8 @@ class YOLOTask(Task):
         if self._model is None:
             self._model = YOLO('yolov8n.pt')
             # Get GPU device and node type
-            gpu_device, node_type = get_gpu_device()
-            LOGGER.info(f"Loading YOLO model on GPU {gpu_device} ({node_type} node)")
+            gpu_device = get_gpu_device()
+            LOGGER.info(f"Loading YOLO model on GPU {gpu_device}")
             # Set device for the model
             if torch.cuda.is_available():
                 self._model = self._model.to(f'cuda:{gpu_device}')
@@ -241,8 +240,8 @@ class YOLOTask(Task):
             dict: Prediction results
         """
         # Get GPU device and node type
-        gpu_device, node_type = get_gpu_device()
-        LOGGER.info(f"Running prediction on GPU {gpu_device} ({node_type} node)")
+        gpu_device = get_gpu_device()
+        LOGGER.info(f"Running prediction on GPU {gpu_device}")
 
         # Run prediction
         results = self.predictor(image)

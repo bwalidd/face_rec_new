@@ -1,5 +1,5 @@
 from rest_framework.decorators import api_view, permission_classes, parser_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
 from .models import Zones, ImageProc , Person , Detections , DetectionPerson , CustomUser
@@ -31,6 +31,8 @@ import os
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 import requests
+from gpu_registry import get_all_gpus, find_and_mark_idle_gpu, mark_gpu_idle
+
 @csrf_exempt
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -96,16 +98,16 @@ def Stream(request, flag=None, title=None):
                 instance = serializer.save()
                 newdata['webrtc_stream_id'] = int(instance.id) + 1
 
-        # Get GPU device and node type
-        gpu_device = int(request.data.get('cudadevice', 0))
-        node_type = "master" if gpu_device < 2 else "worker"
-        
+        # Find and mark an idle GPU as busy
+        pod_id, gpu_id = find_and_mark_idle_gpu()
+        if pod_id is None:
+            return Response({"error": "No idle GPU available"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
         # Set up environment variables
         env = os.environ.copy()
         env['DJANGO_SETTINGS_MODULE'] = 'Backend.settings'
         env['PYTHONPATH'] = '/app'
-        env['CUDA_VISIBLE_DEVICES'] = str(gpu_device % 2)  # Map to local GPU (0 or 1)
-        env['NODE_TYPE'] = node_type
+        env['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
         env['CUDA_HOME'] = '/usr/local/cuda'
         env['LD_LIBRARY_PATH'] = f"{env['CUDA_HOME']}/lib64:{env['LD_LIBRARY_PATH']}"
         
@@ -119,7 +121,6 @@ def Stream(request, flag=None, title=None):
             '--concurrency=1',
             '-Ofair',
             '--heartbeat-interval=30',
-            f'-n workerRecognition_gpu{gpu_device}_{node_type}@%h'
         ]
         
         # Start Celery worker
@@ -129,12 +130,14 @@ def Stream(request, flag=None, title=None):
                 env=env,
                 cwd='/app/Backend/'
             )
-            LOGGER.info(f"Started worker on GPU {gpu_device} ({node_type} node)")
+            LOGGER.info(f"Started worker on GPU {gpu_id} (pod {pod_id})")
         except Exception as e:
             LOGGER.error(f"Error starting worker: {str(e)}")
+            # Mark GPU as idle again if failed
+            mark_gpu_idle(pod_id, gpu_id)
             return Response({"error": "Failed to start worker"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        return Response({"status": "success", "gpu_device": gpu_device, "node_type": node_type})
+        return Response({"status": "success", "gpu_id": gpu_id, "pod_id": pod_id})
     else:
         return Response("error", status=status.HTTP_400_BAD_REQUEST)
             
@@ -586,3 +589,10 @@ def getGPUStatus(request):
             return Response(gpu_status)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def gpu_registry_view(request):
+    """Return all registered GPUs and their status."""
+    gpus = get_all_gpus()
+    return Response({"gpus": gpus})

@@ -1,20 +1,20 @@
 # 06-services.yaml
-# All Kubernetes Services - Fixed Version
+# All Kubernetes Services - Refactored Naming
 
 # Django Backend GPU Services (Individual GPU endpoints)
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-gpu0-service
+  name: django-backend-gpu-0-service
   namespace: face-recognition-system
   labels:
-    gpu-id: "gpu0"
+    gpu-id: "0"
     service-type: "direct-gpu"
 spec:
   selector:
     app: django-backend
-    gpu-id: "gpu0"
+    gpu-id: "0"
   ports:
   - protocol: TCP
     port: 9898
@@ -25,26 +25,76 @@ spec:
   sessionAffinity: ClientIP
   sessionAffinityConfig:
     clientIP:
-      timeoutSeconds: 300  # Reduced from 3600 to 5 minutes
+      timeoutSeconds: 300
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-gpu1-service
+  name: django-backend-gpu-1-service
   namespace: face-recognition-system
   labels:
-    gpu-id: "gpu1"
+    gpu-id: "1"
     service-type: "direct-gpu"
 spec:
   selector:
     app: django-backend
-    gpu-id: "gpu1"
+    gpu-id: "1"
   ports:
   - protocol: TCP
     port: 9898
     targetPort: 9898
     nodePort: 30802
+    name: http
+  type: NodePort
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 300
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-backend-gpu-2-service
+  namespace: face-recognition-system
+  labels:
+    gpu-id: "2"
+    service-type: "direct-gpu"
+spec:
+  selector:
+    app: django-backend
+    gpu-id: "2"
+  ports:
+  - protocol: TCP
+    port: 9898
+    targetPort: 9898
+    nodePort: 30803
+    name: http
+  type: NodePort
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 300
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-backend-gpu-3-service
+  namespace: face-recognition-system
+  labels:
+    gpu-id: "3"
+    service-type: "direct-gpu"
+spec:
+  selector:
+    app: django-backend
+    gpu-id: "3"
+  ports:
+  - protocol: TCP
+    port: 9898
+    targetPort: 9898
+    nodePort: 30804
     name: http
   type: NodePort
   sessionAffinity: ClientIP
@@ -165,11 +215,11 @@ metadata:
   namespace: face-recognition-system
   labels:
     component: monitoring
-    gpu-id: "gpu0"
+    gpu-id: "0"
 spec:
   selector:
     app: django-backend
-    gpu-id: "gpu0"
+    gpu-id: "0"
   ports:
   - protocol: TCP
     port: 6006
@@ -186,11 +236,11 @@ metadata:
   namespace: face-recognition-system
   labels:
     component: monitoring
-    gpu-id: "gpu1"
+    gpu-id: "1"
 spec:
   selector:
     app: django-backend
-    gpu-id: "gpu1"
+    gpu-id: "1"
   ports:
   - protocol: TCP
     port: 6006
@@ -208,11 +258,11 @@ metadata:
   namespace: face-recognition-system
   labels:
     component: development
-    gpu-id: "gpu0"
+    gpu-id: "0"
 spec:
   selector:
     app: django-backend
-    gpu-id: "gpu0"
+    gpu-id: "0"
   ports:
   - protocol: TCP
     port: 8888
@@ -229,11 +279,11 @@ metadata:
   namespace: face-recognition-system
   labels:
     component: development
-    gpu-id: "gpu1"
+    gpu-id: "1"
 spec:
   selector:
     app: django-backend
-    gpu-id: "gpu1"
+    gpu-id: "1"
   ports:
   - protocol: TCP
     port: 8888

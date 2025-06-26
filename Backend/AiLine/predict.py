@@ -785,10 +785,12 @@ def main(*args ,**kwargs):
     import os 
     import redis 
     # Get node type and set GPU device accordingly
-    node_type = os.environ.get('NODE_TYPE', 'master')
-    gpu_device = args[13] if args[13] else ('0' if node_type == 'master' else '1')
-    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_device
-    os.environ["NODE_TYPE"] = node_type
+    # node_type = os.environ.get('NODE_TYPE', 'master')
+    # gpu_device = args[13] if args[13] else ('0' if node_type == 'master' else '1')
+    # os.environ["NODE_TYPE"] = node_type
+    # print(f"Node type: {node_type}")
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["NODE_TYPE"] = "master"
     
     import torch
     print("CUDA available:", torch.cuda.is_available())

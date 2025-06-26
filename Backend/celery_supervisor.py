@@ -22,28 +22,25 @@ class CelerySupervisor:
     def _start_worker(self, worker_id):
         # Configure GPU device for each worker
         gpu_device = (worker_id - 1) % 2  # Map worker to GPU device (0 or 1)
-        node_type = "master" if worker_id <= 2 else "worker"  # First 2 workers on master, last 2 on worker
         
         cmd = (
             f"CUDA_VISIBLE_DEVICES={gpu_device} "
-            f"NODE_TYPE={node_type} "
             f"celery -A Backend.celery_prefork worker "
             f"--queues=prefork_queue "
             f"--pool=prefork "
             f"--concurrency=10 "  # Reduced concurrency per worker
             f"-Ofair "
             f"--heartbeat-interval=30 "
-            f"-n workerRecognition_gpu{gpu_device}_{node_type}@%h"
+            f"-n workerRecognition_gpu{gpu_device}@%h"
         )
         try:
             process = subprocess.Popen(
                 cmd,
                 shell=True,
                 cwd='/app/Backend/',
-                env=dict(os.environ, CUDA_VISIBLE_DEVICES=str(gpu_device), NODE_TYPE=node_type)
+                env=dict(os.environ, CUDA_VISIBLE_DEVICES=str(gpu_device))
             )
             self.workers[worker_id] = process
-            logger.info(f"Started worker {worker_id} on GPU {gpu_device} ({node_type} node)")
             return process
         except Exception as e:
             logger.error(f"Error starting worker {worker_id}: {str(e)}")
@@ -84,7 +81,7 @@ class CelerySupervisor:
         signal.signal(signal.SIGTERM, cleanup)
         signal.signal(signal.SIGINT, cleanup)
 
-        # Start 4 workers (2 for master node, 2 for worker node)
+        # Start N workers (all GPU workers, regardless of node)
         for worker_id in range(1, self.gpu_count + 1):
             self._start_worker(worker_id)
 

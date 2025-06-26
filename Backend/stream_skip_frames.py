@@ -17,8 +17,7 @@ from ultralytics.yolo.utils import LOGGER
 def get_gpu_device():
     """Get the current GPU device based on environment variables"""
     cuda_device = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
-    node_type = os.environ.get('NODE_TYPE', 'master')
-    return int(cuda_device), node_type
+    return int(cuda_device)
 
 def load_encodings():
     encodings_file = 'known_face_encodings.pkl'
@@ -147,13 +146,13 @@ class StreamProcessor:
         self.frame_count = 0
         
         # Get GPU device and node type
-        self.gpu_device, self.node_type = get_gpu_device()
-        LOGGER.info(f"Initializing StreamProcessor on GPU {self.gpu_device} ({self.node_type} node)")
+        gpu_device, node_type = get_gpu_device()
+        LOGGER.info(f"Initializing StreamProcessor on GPU {gpu_device} ({node_type} node)")
         
         # Load model
         self.model = YOLO(model_path)
         if torch.cuda.is_available():
-            self.model = self.model.to(f'cuda:{self.gpu_device}')
+            self.model = self.model.to(f'cuda:{gpu_device}')
         else:
             self.model = self.model.to('cpu')
 

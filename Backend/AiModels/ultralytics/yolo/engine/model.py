@@ -27,8 +27,7 @@ MODEL_MAP = {
 def get_gpu_device():
     """Get the current GPU device based on environment variables"""
     cuda_device = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
-    node_type = os.environ.get('NODE_TYPE', 'master')
-    return int(cuda_device), node_type
+    return int(cuda_device)
 
 class YOLO:
     """
@@ -58,9 +57,9 @@ class YOLO:
         self.ckpt_path = None
         self.overrides = {}  # overrides for trainer object
 
-        # Get GPU device and node type
-        self.gpu_device, self.node_type = get_gpu_device()
-        LOGGER.info(f"Initializing YOLO on GPU {self.gpu_device} ({self.node_type} node)")
+        # Get GPU device
+        self.gpu_device = get_gpu_device()
+        LOGGER.info(f"Initializing YOLO on GPU {self.gpu_device}")
 
         # Load or create new YOLO model
         {'.pt': self._load, '.yaml': self._new}[Path(model).suffix](model)

@@ -21,7 +21,7 @@ import DrawBoard, { useArrowsStore, useRectanglesStore } from "./DrawBoard";
 // import { toast } from 'react-hot-toast'
 import { useGpuStore } from "../../../store/gpus";
 import { useWebSocketStore } from "../store/useSocket";
-import { getBackendUrl } from "../../../services/getBackendUrl";
+import { getBackendUrlForGpuId, getRandomBackendUrl } from "../../../services/getBackendUrl";
 
 const StreamProgress = ({ message }) => {
   const [progress, setProgress] = useState(0);
@@ -65,6 +65,9 @@ type STORE = {
   id: string;
   model: string;
   cuda_device: number;
+  pod_id: string;
+  gpu_id: number;
+  service: string;
 };
 type ACTION = {
   setPlace: (data: string) => void;
@@ -74,6 +77,9 @@ type ACTION = {
   setId: (data: string) => void;
   setModel: (data: string) => void;
   setCudaDevice: (data: number) => void;
+  setPodId: (data: string) => void;
+  setGpuId: (data: number) => void;
+  setService: (data: string) => void;
   response: any;
   handleSubmit: () => void;
 };
@@ -85,6 +91,9 @@ const useAddStreamStore = create<STORE & ACTION>((set) => ({
   model: "",
   cuda_device: 0,
   response: null,
+  pod_id: "",
+  gpu_id: 0,
+  service: "",
 
   setPlace(data) {
     set({ place: data });
@@ -107,24 +116,55 @@ const useAddStreamStore = create<STORE & ACTION>((set) => ({
   setCudaDevice(data) {
     set({ cuda_device: data });
   },
+  setPodId(data) {
+    set({ pod_id: data });
+  },
+  setGpuId(data) {
+    set({ gpu_id: data });
+  },
+  setService(data) {
+    set({ service: data });
+  },
   handleSubmit() {
     console.log("Submit");
   },
 }));
 
+type GpuInfo = { pod: string; node: string; gpu_id: number; status: string; last_heartbeat: number; service: string };
+const useDynamicGpuSelection = () => {
+  const [gpus, setGpus] = useState<GpuInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const axios = useAxios();
+  useEffect(() => {
+    axios.get("/api/gpus/").then(res => {
+      setGpus(res.data.gpus as GpuInfo[]);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+  return { gpus, loading };
+};
+
 const StepOne = (places: any, indexplace: number, streamtype: string) => {
   const flag = false;
   const stream = useStreamStore();
-  const gpuStore = useGpuStore();
   const streamStore = useAddStreamStore();
+  const { gpus, loading } = useDynamicGpuSelection();
+  const [selectedGpu, setSelectedGpu] = useState<GpuInfo | null>(null);
 
   const handleUrlChange = (e: any) => {
     streamStore.setUrl(e.target.value);
   };
   const handleCudaDeviceChange = (value: any) => {
-    console.log(`clicked value is ${value}`)
-    streamStore.setCudaDevice(value)
-  }
+    const gpu = gpus.find((g) => `${g.pod}_${g.gpu_id}` === value);
+    setSelectedGpu(gpu);
+    if (gpu) {
+      streamStore.setCudaDevice(gpu.gpu_id);
+      streamStore.setGpuId(gpu.gpu_id);
+      streamStore.setPodId(gpu.pod);
+      streamStore.setService(gpu.service);
+      streamStore.setResponse({ ...streamStore.response, pod_id: gpu.pod });
+    }
+  };
   const handleTitleChange = (e: any) => {
     streamStore.setTitle(e.target.value);
   };
@@ -136,10 +176,7 @@ const StepOne = (places: any, indexplace: number, streamtype: string) => {
     streamStore.setModel(value);
     stream.setModel(value)
   };
-  console.log("----")
 
-  console.log(stream.models)
-  console.log("----")
   return (
     <>
       {flag == false && (
@@ -193,18 +230,28 @@ const StepOne = (places: any, indexplace: number, streamtype: string) => {
           <div className="flex flex-col gap-3">
             <RadioGroup
               label="Select GPU"
-              value={streamStore.cuda_device}
-              onValueChange={(v) => streamStore.setCudaDevice(parseInt(v))}
+              value={selectedGpu ? `${selectedGpu.pod}_${selectedGpu.gpu_id}` : ""}
+              onValueChange={handleCudaDeviceChange}
             >
-              {Array.from({ length: gpuStore.gpus }).map((_, index) => (
-                <Radio key={index} value={index}>
-                  GPU {index + 1}
-                </Radio>
-              ))}
+              {loading ? (
+                <Radio value="loading">Loading GPUs...</Radio>
+              ) : gpus.length === 0 ? (
+                <Radio value="none">No GPUs available</Radio>
+              ) : (
+                gpus.map((gpu) => (
+                  <Radio key={`${gpu.pod}_${gpu.gpu_id}`} value={`${gpu.pod}_${gpu.gpu_id}`}
+                    isDisabled={gpu.status !== "idle"}
+                  >
+                    {`GPU ${gpu.gpu_id} (${gpu.pod}, ${gpu.status})`}
+                  </Radio>
+                ))
+              )}
             </RadioGroup>
-            <p className="text-default-500 text-small">
-              Selected: {parseInt(streamStore.cuda_device + 1)}
-            </p>
+            {selectedGpu && (
+              <p className="text-default-500 text-small">
+                Selected: GPU {selectedGpu.gpu_id} (Pod: {selectedGpu.pod})
+              </p>
+            )}
           </div>
         </>
       )}
@@ -249,7 +296,7 @@ export const AddStreamCountingButton = ({
     stream.places.forEach(
       async (element: { name: string | undefined; id: number }) => {
         if (element.name === streamStore.place) {
-          const backendUrl = getBackendUrl(streamStore.cuda_device);
+          const backendUrl = `http://${streamStore.service}:9898`;
           const response = await axios.post(
             `${backendUrl}/api/peoplecounting/addStreamCounting/`,
             {
@@ -260,7 +307,9 @@ export const AddStreamCountingButton = ({
               place_name: `${streamStore.place}`,
               category_name: `${category_name}`,
               model_type: `${model_type}`,
-              cuda_device: `${streamStore.cuda_device}`
+              cuda_device: `${streamStore.cuda_device}`,
+              pod_id: `${streamStore.pod_id}`,
+              gpu_id: `${streamStore.gpu_id}`
             }
           );
           streamStore.setResponse(response.data);
@@ -307,7 +356,7 @@ export const AddStreamCountingButton = ({
         if (element.name === streamStore.place) {
           console.log("streamStore.id", streamStore.response.id);
           console.log("streamStore.id", streamStore.id);
-          const backendUrl = getBackendUrl(streamStore.cuda_device);
+          const backendUrl = `http://${streamStore.service}:9898`;
           const response = await axios.patch(
             `${backendUrl}/api/peoplecounting/addStreamCounting/`,
             {
@@ -320,8 +369,9 @@ export const AddStreamCountingButton = ({
               camera_type: `${camera_type}`,
               cords_type: `${cord_types}`,
               model_type: `${stream.model}`,
-              cuda_device: `${streamStore.cuda_device}`
-
+              cuda_device: `${streamStore.cuda_device}`,
+              pod_id: `${streamStore.pod_id}`,
+              gpu_id: `${streamStore.gpu_id}`
             }
           );
           streamStore.setResponse(response.data);

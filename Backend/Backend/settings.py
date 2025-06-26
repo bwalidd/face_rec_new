@@ -239,14 +239,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # GPU Configuration
 GPU_COUNT = 2  # 2 GPUs per node
 GPU_DEVICES = "0,1"  # Local GPU devices
-NODE_TYPE = os.getenv('NODE_TYPE', 'master')
 CUDA_VISIBLE_DEVICES = os.getenv('CUDA_VISIBLE_DEVICES', '0,1')
 
 # Celery GPU Configuration
 CELERY_GPU_SETTINGS = {
     'GPU_COUNT': GPU_COUNT,
     'GPU_DEVICES': GPU_DEVICES,
-    'NODE_TYPE': NODE_TYPE,
     'CUDA_VISIBLE_DEVICES': CUDA_VISIBLE_DEVICES,
     'PYTORCH_CUDA_ALLOC_CONF': 'max_split_size_mb:256',
     'NCCL_DEBUG': 'INFO',

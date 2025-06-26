@@ -48,8 +48,7 @@ from ultralytics.yolo.utils.plotting import Annotator, colors, save_one_box
 def get_gpu_device():
     """Get the current GPU device based on environment variables"""
     cuda_device = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
-    node_type = os.environ.get('NODE_TYPE', 'master')
-    return int(cuda_device), node_type
+    return int(cuda_device)
 
 
 class BasePredictor:
@@ -95,9 +94,9 @@ class BasePredictor:
         else:
             self.show = False
 
-        # Get GPU device and node type
-        self.gpu_device, self.node_type = get_gpu_device()
-        LOGGER.info(f"Initializing predictor on GPU {self.gpu_device} ({self.node_type} node)")
+        # Get GPU device
+        self.gpu_device = get_gpu_device()
+        LOGGER.info(f"Initializing predictor on GPU {self.gpu_device}")
 
         # Set device
         if self.args.device is None:

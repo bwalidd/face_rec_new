@@ -12,7 +12,7 @@ import subprocess
 from django.core.files.base import ContentFile
 import uuid
 from .execution import run_prediction_task
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 import psutil
 import time
 from Api.janus_api import main_api , main_api_delete
@@ -45,6 +45,16 @@ def GetStream(request, id) -> Response:
 def PostStream(request):
     # if request.user.username != "bluedove":
     #     return Response("Not allowed", status=status.HTTP_401_UNAUTHORIZED)
+    
+    # Check if pod_id and gpu_id match this pod's configuration (for GPU tasks)
+    if request.method in ["POST", "PATCH"] and request.data.get("pod_id") and request.data.get("gpu_id") is not None:
+        import socket
+        current_pod = os.getenv('HOSTNAME', socket.gethostname())
+        current_gpu_ids = os.getenv('GPU_ID', '0').split(',')
+        if request.data["pod_id"] != current_pod:
+            return HttpResponseForbidden("This pod cannot process GPU tasks for another pod.")
+        if str(request.data["gpu_id"]) not in current_gpu_ids:
+            return HttpResponseForbidden("This pod does not have the requested GPU ID.")
     
     if request.method == "PATCH":
         try:

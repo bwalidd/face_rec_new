@@ -8,12 +8,6 @@ def run_prediction_task(model : str, source : str, conf : float, cords : str, lo
     print(f"model is {model} source is {source} conf is {conf} cords is {cords} location is {location} camera is {camera} camera_name is {camera_name} url is {url} camera type is {camera_type} model_type {model_type}")
     env['DJANGO_SETTINGS_MODULE'] = 'Backend.settings'
     
-    # Get node type and set GPU device accordingly
-    node_type = os.environ.get('NODE_TYPE', 'master')
-    gpu_device = '0' if node_type == 'master' else '1'
-    env['CUDA_VISIBLE_DEVICES'] = gpu_device
-    env['NODE_TYPE'] = node_type
-
     env['CUDA_HOME'] = '/usr/local/cuda'
     env['LD_LIBRARY_PATH'] = f"{env['CUDA_HOME']}/lib64:{env['LD_LIBRARY_PATH']}"
     env['PYTHONPATH'] = '/app/Backend/AiModels/ultralytics/yolo/v8/detect' 

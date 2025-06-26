@@ -84,7 +84,6 @@ app.conf.task_queues = {
 app.conf.update(
     gpu_count=2,  # 2 GPUs per node
     gpu_devices="0,1",  # Local GPU devices
-    node_type=os.environ.get('NODE_TYPE', 'master'),
     cuda_visible_devices=os.environ.get('CUDA_VISIBLE_DEVICES', '0,1'),
     pytorch_cuda_alloc_conf='max_split_size_mb:256',
     nccl_debug='INFO',

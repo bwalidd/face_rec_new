@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from .views import PresentPersons ,markPerson ,markRead ,Stream ,getDetectionsPerson ,zones,StreamFilter, FilterStream , searchProfiles, PersonImageView ,getStream , getEachPersonDetections, getDetectionsPersons , ProfileDetections, CameraFeed, getGPUStatus
+from .views import PresentPersons ,markPerson ,markRead ,Stream ,getDetectionsPerson ,zones,StreamFilter, FilterStream , searchProfiles, PersonImageView ,getStream , getEachPersonDetections, getDetectionsPersons , ProfileDetections, CameraFeed, getGPUStatus, gpu_registry_view
 
 # , camerafeed
 # from . import views
@@ -30,4 +30,5 @@ urlpatterns = [
     path('presentPersons/<int:place_id>',PresentPersons),
     path('camera-feed/', CameraFeed, name='camera-feed'),
     path('gpu-status/', getGPUStatus, name='gpu-status'),
+    path('gpus/', gpu_registry_view, name='gpu-registry'),
 ]
