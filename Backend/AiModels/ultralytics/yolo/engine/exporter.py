@@ -23,7 +23,7 @@ Requirements:
 
 Python:
     from ultralytics import YOLO
-    model = YOLO('yolov8n.yaml')
+    model = YOLO('yolov8n.yaml', gpu_id=gpu_id)
     results = model.export(format='onnx')
 
 CLI:
@@ -816,7 +816,7 @@ def export(cfg):
     # exporter(model=model)
 
     from ultralytics import YOLO
-    model = YOLO(cfg.model)
+    model = YOLO(cfg.model, gpu_id=gpu_id)
     model.export(**cfg)
 
 

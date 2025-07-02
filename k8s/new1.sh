@@ -444,7 +444,7 @@ show_multi_gpu_access_info() {
     echo "  ✅ Database: Running on $MASTER_NODE with IP $(get_database_ip 2>/dev/null || echo 'check manually')"
     echo "  🎯 GPU0: 2x RTX 2080 Ti on $MASTER_NODE ($EXPECTED_IMAGE)"
     echo "  🎯 GPU1: 2x RTX Super on $WORKER_NODE ($EXPECTED_IMAGE1)"
-    echo "  ✅ Multi-GPU Configuration: CUDA_VISIBLE_DEVICES=0,1 for both pods"
+    # echo "  ✅ Multi-GPU Configuration: CUDA_VISIBLE_DEVICES=0,1 for both pods"
     echo "  ✅ Anti-Affinity: Ensures pods on different nodes"
     echo "  ✅ Resource Allocation: 2 GPUs, 4GB RAM, 2 CPU cores per pod"
     echo ""

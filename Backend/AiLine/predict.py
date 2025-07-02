@@ -18,9 +18,7 @@ import datetime
 from threading import Thread
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Backend.settings')
 django.setup()
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"  
-from Api.janus_api import main_api 
-from Api.helpers import send_stream_status
+
 # Goal width for resizing, set to 0 for no resizing
 GOAL_WIDTH = 600
 
@@ -785,16 +783,16 @@ def main(*args ,**kwargs):
     import os 
     import redis 
    
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    os.environ["NODE_TYPE"] = "master"
+    # Set CUDA_VISIBLE_DEVICES dynamically from args if provided
+    gpu_id = args[13] if len(args) > 13 else 0
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
     
     import torch
     print("CUDA available:", torch.cuda.is_available())
     print("CUDA version:", torch.version.cuda)
     print("PyTorch version:", torch.__version__)
-    torch.cuda.set_device(int(gpu_device))
+    torch.cuda.set_device(0)  # Always 0 because CUDA_VISIBLE_DEVICES is set to the correct global GPU
     print(f"Current CUDA device: {torch.cuda.current_device()}")
-    print(f"Node type: {node_type}")
     print(f"Args: {args}")
 
     # Parse arguments for WebSocket
@@ -870,7 +868,7 @@ def main(*args ,**kwargs):
                 continue
 
             # Load YOLO model with optimizations
-            model = YOLO("/app/Backend/AiLine/ppl.pt")
+            model = YOLO("/app/Backend/AiLine/ppl.pt", gpu_id=0)
             
             # Configure model for lower computational overhead
             model.overrides.update({
@@ -878,13 +876,13 @@ def main(*args ,**kwargs):
                 'conf': 0.5,  # Higher confidence threshold reduces unnecessary detections
                 'iou': 0.45,  # Adjust IOU threshold for more efficient NMS
                 'batch': 1,  # Set batch size to 1
-                'device': int(gpu_device),
+                'device': 0,
             })
 
             # Initialize FPS calculation
             frame_count = 0
             processed_frame_count = 0
-            start_time = time.time()
+            start_time = time.perf_counter()
             fps = 0
             old_boxes = None
             consecutive_failures = 0
@@ -956,7 +954,7 @@ def main(*args ,**kwargs):
                     persist=True, 
                     tracker="bytetrack.yaml",
                     verbose=False,
-                    device=args[13],# Disable verbose logging
+                    device=0, # Always 0 because CUDA_VISIBLE_DEVICES is set
                     conf=0.1,
                     iou=0.45,
                 )

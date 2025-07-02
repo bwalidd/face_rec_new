@@ -774,7 +774,7 @@ def main_zone(*args , **kwargs):
                 continue
 
             # Load YOLO model with optimizations
-            model = YOLO(args[0])
+            model = YOLO(args[0], gpu_id=torch.cuda.current_device())
             
             # Configure model for lower computational overhead
             model.overrides.update({
@@ -825,7 +825,7 @@ def main_zone(*args , **kwargs):
                 # FPS Calculation
                 processed_frame_count += 1
                 if processed_frame_count % 30 == 0:  # Calculate FPS less frequently
-                    current_time = perf_counter = time.perf_counter()
+                    current_time = perf_counter = time.time()
                     fps = processed_frame_count / (current_time - start_time)
                     start_time = current_time
                     processed_frame_count = 0

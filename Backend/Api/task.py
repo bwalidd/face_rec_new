@@ -15,7 +15,6 @@ from .helpers import send_stream_status
 from Backend.celery import app as solo_worker
 from Backend.celery_prefork import app as prefork_worker
 import time
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"  
 
 # @prefork_worker.task
 # def write_frame_to_ffmpeg(frame_bytes, ffmpeg_pid):
@@ -198,37 +197,12 @@ def insertion_database_task_known_high(random_filename, best_match_index, face_d
     # print(f"iteration task inside known {iteration_time_ms} ms")
 
 def face_recognition_worker(frame, place_id, known_face_names, known_face_encodings, cudadevice):
-    import os
-    def save_frame_to_temp(frame_data, suffix='.jpg'):
-        """Helper function to save frame data to a temporary file"""
-        try:
-            # Use tempfile.NamedTemporaryFile instead of manual file creation
-            temp_file = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
-            temp_path = temp_file.name
-            
-            if isinstance(frame_data, (bytes, ContentFile)):
-                if isinstance(frame_data, ContentFile):
-                    temp_file.write(frame_data.read())
-                else:
-                    temp_file.write(frame_data)
-            else:
-                temp_file.close()
-                cv2.imwrite(temp_path, frame_data)
-                
-            return temp_path
-        except Exception as e:
-            print(f"Error saving temporary file: {e}")
-            if 'temp_file' in locals():
-                temp_file.close()
-                try:
-                    os.unlink(temp_path)
-                except:
-                    pass
-            raise
+    # Set CUDA_VISIBLE_DEVICES dynamically from cudadevice
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(cudadevice)
     # Map global GPU ID to local CUDA index
     local_index = get_local_cuda_index(cudadevice)
     if torch.cuda.is_available():
-        torch.cuda.set_device(local_index)
+        torch.cuda.set_device(0)  # Always 0 because CUDA_VISIBLE_DEVICES is set to the correct global GPU
     
     current_time = timezone.now()
     last_minute = current_time - timedelta(seconds=30)

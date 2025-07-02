@@ -45,12 +45,6 @@ from ultralytics.yolo.utils.torch_utils import select_device, smart_inference_mo
 from ultralytics.yolo.utils.plotting import Annotator, colors, save_one_box
 
 
-def get_gpu_device():
-    """Get the current GPU device based on environment variables"""
-    cuda_device = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
-    return int(cuda_device)
-
-
 class BasePredictor:
     """
     BasePredictor
@@ -94,14 +88,6 @@ class BasePredictor:
         else:
             self.show = False
 
-        # Get GPU device
-        self.gpu_device = get_gpu_device()
-        LOGGER.info(f"Initializing predictor on GPU {self.gpu_device}")
-
-        # Set device
-        if self.args.device is None:
-            self.args.device = f'cuda:{self.gpu_device}' if torch.cuda.is_available() else 'cpu'
-
         # Usable if setup is done
         self.model = None
         self.data = self.args.data  # data_dict
@@ -117,6 +103,12 @@ class BasePredictor:
         self.transforms = None
         self.callbacks = _callbacks or callbacks.get_default_callbacks()
         callbacks.add_integration_callbacks(self)
+
+    def get_local_cuda_index(global_gpu_id):
+        """Given a global GPU ID, return the local index in CUDA_VISIBLE_DEVICES."""
+        cuda_devices = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
+        device_list = [int(x) for x in cuda_devices.split(',')]
+        return device_list.index(global_gpu_id)
 
     def preprocess(self, img):
         """
@@ -267,7 +259,7 @@ class BasePredictor:
 
         # Set device for the model
         if torch.cuda.is_available():
-            model = model.to(f'cuda:{self.gpu_device}')
+            model = model.to(f'cuda:{get_local_cuda_index(self.gpu_device)}')
         else:
             model = model.to(device)
 

@@ -14,11 +14,6 @@ import torch
 from ultralytics import YOLO
 from ultralytics.yolo.utils import LOGGER
 
-def get_gpu_device():
-    """Get the current GPU device based on environment variables"""
-    cuda_device = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
-    return int(cuda_device)
-
 def get_local_cuda_index(global_gpu_id):
     """Given a global GPU ID, return the local index in CUDA_VISIBLE_DEVICES."""
     cuda_devices = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
@@ -139,25 +134,23 @@ def face_recognition_worker(frame, i, gpu_id):
                 cv2.imwrite(os.path.join(out_path, f"_Original_{frame_name}"), save_frame)
 
 class StreamProcessor:
-    def __init__(self, model_path='yolov8n.pt', skip_frames=5):
+    def __init__(self, model_path='yolov8n.pt', skip_frames=5, gpu_id=0):
         """
         Initialize the stream processor.
 
         Args:
             model_path (str): Path to the YOLO model
             skip_frames (int): Number of frames to skip between predictions
+            gpu_id (int): Global GPU ID to use
         """
         self.skip_frames = skip_frames
         self.frame_count = 0
-        
-        # Get GPU device and node type
-        gpu_device = get_gpu_device()
-        LOGGER.info(f"Initializing StreamProcessor on GPU {gpu_device}")
-        
+        self.gpu_device = get_local_cuda_index(gpu_id)
+        LOGGER.info(f"Initializing StreamProcessor on GPU {self.gpu_device}")
         # Load model
-        self.model = YOLO(model_path)
+        self.model = YOLO(model_path, gpu_id=gpu_id)
         if torch.cuda.is_available():
-            self.model = self.model.to(f'cuda:{gpu_device}')
+            self.model = self.model.to(f'cuda:{self.gpu_device}')
         else:
             self.model = self.model.to('cpu')
 
@@ -251,7 +244,7 @@ class StreamProcessor:
 
 def main():
     # Get GPU device and node type
-    gpu_device = get_gpu_device()
+    gpu_device = get_local_cuda_index(0)
     LOGGER.info(f"Starting stream processing on GPU {gpu_device}")
     
     # Initialize stream processor

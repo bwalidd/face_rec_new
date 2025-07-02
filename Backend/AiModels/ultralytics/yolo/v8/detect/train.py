@@ -202,7 +202,7 @@ def train(cfg):
     # trainer = DetectionTrainer(cfg)
     # trainer.train()
     from ultralytics import YOLO
-    model = YOLO(cfg.model)
+    model = YOLO(cfg.model, gpu_id=gpu_id)
     model.train(**cfg)
 
 

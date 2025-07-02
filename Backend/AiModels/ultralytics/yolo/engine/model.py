@@ -24,11 +24,6 @@ MODEL_MAP = {
         SegmentationModel, 'yolo.TYPE.segment.SegmentationTrainer', 'yolo.TYPE.segment.SegmentationValidator',
         'yolo.TYPE.segment.SegmentationPredictor']}
 
-def get_gpu_device():
-    """Get the current GPU device based on environment variables"""
-    cuda_device = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
-    return int(cuda_device)
-
 class YOLO:
     """
     YOLO
@@ -36,13 +31,14 @@ class YOLO:
     A python interface which emulates a model-like behaviour by wrapping trainers.
     """
 
-    def __init__(self, model='yolov8n.yaml', type="v8") -> None:
+    def __init__(self, model='yolov8n.yaml', type="v8", gpu_id=None) -> None:
         """
         > Initializes the YOLO object.
 
         Args:
             model (str, Path): model to load or create
             type (str): Type/version of models to use. Defaults to "v8".
+            gpu_id (int): Global GPU ID to use for this model instance.
         """
         self.type = type
         self.ModelClass = None  # model class
@@ -58,7 +54,10 @@ class YOLO:
         self.overrides = {}  # overrides for trainer object
 
         # Get GPU device
-        self.gpu_device = get_gpu_device()
+        if gpu_id is not None:
+            self.gpu_device = get_local_cuda_index(gpu_id)
+        else:
+            self.gpu_device = 0  # Default to first local device if not specified
         LOGGER.info(f"Initializing YOLO on GPU {self.gpu_device}")
 
         # Load or create new YOLO model

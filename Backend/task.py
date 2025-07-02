@@ -216,7 +216,7 @@ class YOLOTask(Task):
     @property
     def model(self):
         if self._model is None:
-            self._model = YOLO('yolov8n.pt')
+            self._model = YOLO('yolov8n.pt', gpu_id=self.gpu_id)
             gpu_device = get_local_cuda_index(self.gpu_id)
             LOGGER.info(f"Loading YOLO model on GPU {gpu_device}")
             if torch.cuda.is_available():
