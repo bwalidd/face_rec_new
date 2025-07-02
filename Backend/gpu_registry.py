@@ -13,12 +13,17 @@ r = redis.Redis.from_url(REDIS_URL)
 
 
 def get_pod_id():
+    """Return the unique identifier (hostname) for the current pod."""
     return os.getenv('HOSTNAME', socket.gethostname())
 
+
 def get_node_name():
+    """Return the Kubernetes node name where this pod is running."""
     return os.getenv('NODE_NAME', 'unknown-node')
 
+
 def get_service_name():
+    """Return the backend service name for this pod, either from env or by convention."""
     # Try to get from env, else infer from GPU_SERVICE_NAME or GPU_GROUP or fallback to pod_id
     # Recommend setting BACKEND_SERVICE_NAME in deployment
     svc = os.getenv('BACKEND_SERVICE_NAME')
@@ -29,9 +34,12 @@ def get_service_name():
     if group:
         return f'django-backend-gpu-{group}-service'
     # Fallback: use pod_id (not recommended)
-    return f'django-backend-gpu-{get_pod_id()}-service'
+    pod_id = get_pod_id()
+    return f'django-backend-gpu-{pod_id}-service'
+
 
 def register_pod_gpus(gpu_ids):
+    """Register all GPUs managed by this pod in the Redis registry."""
     pod_id = get_pod_id()
     node = get_node_name()
     service = get_service_name()
@@ -65,6 +73,7 @@ def update_gpu_status(gpu_id, status):
 
 
 def heartbeat():
+    """Update the last_heartbeat timestamp for all GPUs managed by this pod."""
     pod_id = get_pod_id()
     now = int(time.time())
     pod_info = r.hget(REGISTRY_KEY, pod_id)
@@ -78,6 +87,7 @@ def heartbeat():
 
 
 def get_all_gpus():
+    """Return a list of all registered GPUs and their status from the registry."""
     all_pods = r.hgetall(REGISTRY_KEY)
     result = []
     for pod_id, pod_info in all_pods.items():
@@ -96,6 +106,7 @@ def get_all_gpus():
 
 
 def cleanup_stale_entries():
+    """Remove GPUs from the registry that have not sent a heartbeat within the stale threshold."""
     now = int(time.time())
     all_pods = r.hgetall(REGISTRY_KEY)
     for pod_id, pod_info in all_pods.items():
@@ -105,7 +116,7 @@ def cleanup_stale_entries():
 
 
 def find_and_mark_idle_gpu():
-    """Find the first idle GPU and mark it as busy. Returns (pod_id, gpu_id) or (None, None) if none available."""
+    """Find an idle GPU in the registry, mark it as busy, and return its pod_id and gpu_id."""
     all_pods = r.hgetall(REGISTRY_KEY)
     now = int(time.time())
     for pod_id, pod_info in all_pods.items():
@@ -121,6 +132,7 @@ def find_and_mark_idle_gpu():
 
 
 def mark_gpu_idle(pod_id, gpu_id):
+    """Mark the specified GPU as idle in the registry."""
     pod_info = r.hget(REGISTRY_KEY, pod_id)
     if not pod_info:
         return

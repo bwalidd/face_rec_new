@@ -168,11 +168,11 @@ spec:
         - containerPort: 8888
         env:
         - name: CUDA_VISIBLE_DEVICES
-          value: "0,1"
+          value: "2,3"
         - name: NVIDIA_VISIBLE_DEVICES
-          value: "0,1"
+          value: "2,3"
         - name: GPU_ID
-          value: "0,1"
+          value: "2,3"
         - name: GPU_COUNT
           value: "2"
         - name: NODE_TYPE
@@ -239,3 +239,37 @@ spec:
             cpu: "1000m"
             memory: "2Gi"
         
+
+
+# {
+#   "gpus": [
+#     { 
+#       "pod": "django-backend-gpu0", 
+#       "gpu_id": 0,
+#       "status": "idle",
+#       "service": "django-backend-gpu-0-service"
+#     },
+#     {
+#        "pod": "django-backend-gpu0", 
+#        "gpu_id": 1,
+#        "status": "idle",
+#        "service": "django-backend-gpu-0-service"
+#     },
+#     {
+#        "pod": "django-backend-gpu1", 
+#        "gpu_id": 2,
+#        "status": "idle",
+#        "service": "django-backend-gpu-1-service"
+#     },
+#     {
+#        "pod": "django-backend-gpu1", 
+#        "gpu_id": 3,
+#        "status": "idle",
+#        "service": "django-backend-gpu-1-service"
+#     }
+#   ]
+# }
+
+
+#   local_index = get_local_cuda_index(3)  # Returns 1, since 3 is the second in [2,3]
+  # torch.cuda.set_device(local_index)     # torch.cuda.set_device(1)

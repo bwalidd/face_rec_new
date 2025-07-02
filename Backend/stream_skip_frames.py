@@ -19,6 +19,12 @@ def get_gpu_device():
     cuda_device = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
     return int(cuda_device)
 
+def get_local_cuda_index(global_gpu_id):
+    """Given a global GPU ID, return the local index in CUDA_VISIBLE_DEVICES."""
+    cuda_devices = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
+    device_list = [int(x) for x in cuda_devices.split(',')]
+    return device_list.index(global_gpu_id)
+
 def load_encodings():
     encodings_file = 'known_face_encodings.pkl'
     if path.exists(encodings_file):
@@ -57,13 +63,12 @@ if not known_face_encodings or not known_face_names:
 
 print(known_face_names)
 
-def face_recognition_worker(frame, i):
-    # Get current GPU device and node type
-    gpu_device, node_type = get_gpu_device()
-    
+def face_recognition_worker(frame, i, gpu_id):
+    # Map global GPU ID to local CUDA index
+    local_index = get_local_cuda_index(gpu_id)
     # Set CUDA device for PyTorch
     if torch.cuda.is_available():
-        torch.cuda.set_device(gpu_device)
+        torch.cuda.set_device(local_index)
     
     rgb_frame = frame[:, :, ::-1]
     code = cv2.COLOR_BGR2RGB
@@ -146,8 +151,8 @@ class StreamProcessor:
         self.frame_count = 0
         
         # Get GPU device and node type
-        gpu_device, node_type = get_gpu_device()
-        LOGGER.info(f"Initializing StreamProcessor on GPU {gpu_device} ({node_type} node)")
+        gpu_device = get_gpu_device()
+        LOGGER.info(f"Initializing StreamProcessor on GPU {gpu_device}")
         
         # Load model
         self.model = YOLO(model_path)
@@ -246,8 +251,8 @@ class StreamProcessor:
 
 def main():
     # Get GPU device and node type
-    gpu_device, node_type = get_gpu_device()
-    LOGGER.info(f"Starting stream processing on GPU {gpu_device} ({node_type} node)")
+    gpu_device = get_gpu_device()
+    LOGGER.info(f"Starting stream processing on GPU {gpu_device}")
     
     # Initialize stream processor
     processor = StreamProcessor(skip_frames=5)

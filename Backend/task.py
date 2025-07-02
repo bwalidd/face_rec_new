@@ -16,10 +16,11 @@ from ultralytics import YOLO
 from ultralytics.yolo.engine.predictor import BasePredictor
 from ultralytics.yolo.utils import LOGGER
 
-def get_gpu_device():
-    """Get the current GPU device based on environment variables"""
-    cuda_device = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
-    return int(cuda_device)
+def get_local_cuda_index(global_gpu_id):
+    """Given a global GPU ID, return the local index in CUDA_VISIBLE_DEVICES."""
+    cuda_devices = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
+    device_list = [int(x) for x in cuda_devices.split(',')]
+    return device_list.index(global_gpu_id)
 
 def load_encodings():
     encodings_file = 'known_face_encodings.pkl'
@@ -57,13 +58,11 @@ if not known_face_encodings or not known_face_names:
 
 print(known_face_names)
 
-def face_recognition_worker(frame):
-    # Get current GPU device and node type
-    gpu_device = get_gpu_device()
-    
-    # Set CUDA device for PyTorch
+def face_recognition_worker(frame, gpu_id):
+    # Map global GPU ID to local CUDA index
+    local_index = get_local_cuda_index(gpu_id)
     if torch.cuda.is_available():
-        torch.cuda.set_device(gpu_device)
+        torch.cuda.set_device(local_index)
     
     code = cv2.COLOR_BGR2RGB
     rgb_frame2 = frame[:, :, ::-1]
@@ -143,7 +142,7 @@ def face_recognition_worker(frame):
     del save_frame
     del frame
 
-def mainloop(rtsp_url, place):
+def mainloop(rtsp_url, place, gpu_id):
     video_capture = cv2.VideoCapture(rtsp_url)
     known_face_encodings, known_face_names = load_encodings()
 
@@ -175,7 +174,7 @@ def mainloop(rtsp_url, place):
         ret, frame = video_capture.read()
         
         if process_this_frame and ret:
-            face_recognition_worker(frame)
+            face_recognition_worker(frame, gpu_id)
         
         process_this_frame = not process_this_frame
 
@@ -183,9 +182,9 @@ def mainloop(rtsp_url, place):
     cv2.destroyAllWindows()
 
 class YOLOPredictor(BasePredictor):
-    def __init__(self, overrides=None):
+    def __init__(self, gpu_id, overrides=None):
         super().__init__(overrides)
-        self.gpu_device = get_gpu_device()
+        self.gpu_device = get_local_cuda_index(gpu_id)
         LOGGER.info(f"Initializing YOLOPredictor on GPU {self.gpu_device}")
 
     def setup_model(self, model, verbose=True):
@@ -210,14 +209,16 @@ class YOLOTask(Task):
     _model = None
     _predictor = None
 
+    def __init__(self, gpu_id):
+        super().__init__()
+        self.gpu_id = gpu_id
+
     @property
     def model(self):
         if self._model is None:
             self._model = YOLO('yolov8n.pt')
-            # Get GPU device and node type
-            gpu_device = get_gpu_device()
+            gpu_device = get_local_cuda_index(self.gpu_id)
             LOGGER.info(f"Loading YOLO model on GPU {gpu_device}")
-            # Set device for the model
             if torch.cuda.is_available():
                 self._model = self._model.to(f'cuda:{gpu_device}')
         return self._model
@@ -225,7 +226,7 @@ class YOLOTask(Task):
     @property
     def predictor(self):
         if self._predictor is None:
-            self._predictor = YOLOPredictor()
+            self._predictor = YOLOPredictor(self.gpu_id)
             self._predictor.setup_model(self.model)
         return self._predictor
 
@@ -239,8 +240,7 @@ class YOLOTask(Task):
         Returns:
             dict: Prediction results
         """
-        # Get GPU device and node type
-        gpu_device = get_gpu_device()
+        gpu_device = get_local_cuda_index(self.gpu_id)
         LOGGER.info(f"Running prediction on GPU {gpu_device}")
 
         # Run prediction

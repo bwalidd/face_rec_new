@@ -45,7 +45,11 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.core.files.base import ContentFile
 
-
+def get_local_cuda_index(global_gpu_id):
+    """Given a global GPU ID, return the local index in CUDA_VISIBLE_DEVICES."""
+    cuda_devices = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
+    device_list = [int(x) for x in cuda_devices.split(',')]
+    return device_list.index(global_gpu_id)
 
 @prefork_worker.task
 def insertion_database_task_unknown(random_filename, best_match_index, face_distances, known_face_names, 
@@ -221,7 +225,10 @@ def face_recognition_worker(frame, place_id, known_face_names, known_face_encodi
                 except:
                     pass
             raise
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(cudadevice)
+    # Map global GPU ID to local CUDA index
+    local_index = get_local_cuda_index(cudadevice)
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_index)
     
     current_time = timezone.now()
     last_minute = current_time - timedelta(seconds=30)
