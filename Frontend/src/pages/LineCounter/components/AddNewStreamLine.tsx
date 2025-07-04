@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@nextui-org/button";
 import {
   Modal,
@@ -16,6 +16,7 @@ import { useStreamStore } from "../../../store/stream";
 import useAxios from "../../../services/axios";
 import { HTMLElementEvent } from "../../../types/types";
 import { create } from "zustand";
+import { useGpuStore } from "../../../store/gpu";
 
 type STORE = {
   place: string;
@@ -236,30 +237,48 @@ export const AddNewStreamLineButton = ({
   const axios = useAxios();
   const streamStore = useAddStreamStore();
   const stream = useStreamStore();
+  const [service, setService] = useState("");
+  const gpuStore = useGpuStore();
+
+  useEffect(() => {
+    if (!gpuStore.gpuList || gpuStore.gpuList.length === 0) {
+      axios.get("/api/gpus/").then(res => {
+        if (res.data && Array.isArray(res.data.gpus)) {
+          gpuStore.setGpuList(res.data.gpus);
+          gpuStore.setGpu(res.data.gpus.length);
+        }
+      }).catch(err => {
+        console.error("Failed to fetch GPU registry:", err);
+      });
+    }
+  }, []);
+
   const handleSubmit = async () => {
-    stream.places.forEach(
-      async (element: { name: string | undefined; id: number }) => {
-        if (element.name === streamStore.place) {
-          const response = await axios.post("/api/stream/", {
+    stream.places.forEach(async (element) => {
+      if (element.name === streamStore.place) {
+        const backendUrl = service ? `http://${service}:9898` : "";
+        const response = await axios.post(
+          backendUrl ? `${backendUrl}/api/stream/` : "/api/stream/",
+          {
             title: `${streamStore.title}`,
             place: `${element.id}`,
             url: `${streamStore.url}`,
             websocket_url: `${streamStore.url}`,
-          });
-          streamStore.setResponse(response.data);
-          if (places[indexplace]?.id) {
-            const res = await axios.get(
-              `/api/streamfilter/${places[indexplace]?.id}/${streamtype}`
-            );
-            stream.load(res.data);
-          } else {
-            stream.load([]);
           }
-          const res1 = await axios.get(`/api/zones/${streamtype}`);
-          stream.setPlaces(res1.data);
+        );
+        streamStore.setResponse(response.data);
+        if (places[indexplace]?.id) {
+          const res = await axios.get(
+            `/api/streamfilter/${places[indexplace]?.id}/${streamtype}`
+          );
+          stream.load(res.data);
+        } else {
+          stream.load([]);
         }
+        const res1 = await axios.get(`/api/zones/${streamtype}`);
+        stream.setPlaces(res1.data);
       }
-    );
+    });
   };
   return (
     <>

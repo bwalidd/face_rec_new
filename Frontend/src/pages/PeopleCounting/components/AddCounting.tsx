@@ -292,6 +292,21 @@ export const AddStreamCountingButton = ({
   const axios = useAxios();
   const streamStore = useAddStreamStore();
   const stream = useStreamStore();
+  const gpuStore = useGpuStore();
+
+  useEffect(() => {
+    if (!gpuStore.gpuList || gpuStore.gpuList.length === 0) {
+      axios.get("/api/gpus/").then(res => {
+        if (res.data && Array.isArray(res.data.gpus)) {
+          gpuStore.setGpuList(res.data.gpus);
+          gpuStore.setGpu(res.data.gpus.length);
+        }
+      }).catch(err => {
+        console.error("Failed to fetch GPU registry:", err);
+      });
+    }
+  }, []);
+
   const handleSubmitStepOne = async () => {
     stream.places.forEach(
       async (element: { name: string | undefined; id: number }) => {

@@ -67,6 +67,7 @@ export const AddNewStreamButton = ({ places, indexplace, text, streamtype = "fac
   const [selected, setSelected] = useState(0);
   const [toggle, setToggle] = useState(false);
   const [message, setMessage] = useState("Initializing...");
+  const [service, setService] = useState("");
 
   const handleUrlChange = (e) => {
     setUrl(e.target.value);
@@ -113,18 +114,35 @@ export const AddNewStreamButton = ({ places, indexplace, text, streamtype = "fac
     };
   }, [indexplace]);
 
+  useEffect(() => {
+    if (!gpuStore.gpuList || gpuStore.gpuList.length === 0) {
+      axios.get("/api/gpus/").then(res => {
+        if (res.data && Array.isArray(res.data.gpus)) {
+          gpuStore.setGpuList(res.data.gpus);
+          gpuStore.setGpu(res.data.gpus.length);
+        }
+      }).catch(err => {
+        console.error("Failed to fetch GPU registry:", err);
+      });
+    }
+  }, []);
+
   const handleSubmit = async () => {
     setToggle(true);
 
     stream.places.forEach(async (element) => {
       try {
         if (element.id === places[indexplace].id) {
-          await axios.post("/api/stream/", {
-            title: `${title}`,
-            place: `${places[indexplace].id}`,
-            url: `${url}`,
-            cudadevice: selected
-          });
+          const backendUrl = service ? `http://${service}:9898` : "";
+          await axios.post(
+            backendUrl ? `${backendUrl}/api/stream/` : "/api/stream/",
+            {
+              title: `${title}`,
+              place: `${places[indexplace].id}`,
+              url: `${url}`,
+              cudadevice: selected
+            }
+          );
 
           if (places[indexplace]?.id) {
             const res = await axios.get(
@@ -209,7 +227,13 @@ export const AddNewStreamButton = ({ places, indexplace, text, streamtype = "fac
                       <RadioGroup
                         label="Select GPU"
                         value={selected}
-                        onValueChange={setSelected}
+                        onValueChange={(val) => {
+                          setSelected(val);
+                          const gpuInfo = gpuStore.gpuList ? gpuStore.gpuList[val] : null;
+                          if (gpuInfo && gpuInfo.service) {
+                            setService(gpuInfo.service);
+                          }
+                        }}
                         orientation="horizontal"
                         classNames={{
                           label: "text-white",
