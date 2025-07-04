@@ -509,3 +509,13 @@ trap 'print_status "error" "Multi-GPU build interrupted"; exit 1' INT TERM
 
 # Run main function
 main "$@"
+
+
+
+
+
+
+
+
+# docker build -t bwalidd/new-django:cuda-12.6-dynamic-v1 -f Dockerfile.12.6 .
+# docker push bwalidd/new-django:cuda-12.6-dynamic-v1

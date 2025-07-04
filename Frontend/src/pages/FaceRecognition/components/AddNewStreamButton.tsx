@@ -226,12 +226,11 @@ export const AddNewStreamButton = ({ places, indexplace, text, streamtype = "fac
                             }}
                           >
                             GPU {index + 1}
-                            {index < 2 ? " (Master)" : " (Worker)"}
                           </Radio>
                         ))}
                       </RadioGroup>
                       <p className="text-default-500 text-small">
-                        Selected: GPU {parseInt(selected) + 1} ({parseInt(selected) < 2 ? "Master" : "Worker"} Node)
+                        Selected: GPU {parseInt(selected) + 1}
                       </p>
                     </div>
                   </ModalBody>
