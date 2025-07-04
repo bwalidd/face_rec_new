@@ -519,3 +519,6 @@ main "$@"
 
 # docker build -t bwalidd/new-django:cuda-12.6-dynamic-v1 -f Dockerfile.12.6 .
 # docker push bwalidd/new-django:cuda-12.6-dynamic-v1
+
+# docker build -f ../Dockerfile.front-prod -t bwalidd/new-django:front-new-12.6-dynamic-v1 .
+# docker push bwalidd/new-django:front-new-12.6-dynamic-v1
